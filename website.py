@@ -39,7 +39,7 @@ class Store(Base):
     # user_id = db.column(db.Integer, db.ForeignKey('user.id'))
 
 
-# Base.metadata.create_all(engine)
+Base.metadata.create_all(engine)
 
 # configure Flask using environment variables
 app.config.from_pyfile("config.py")
