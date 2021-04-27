@@ -13,7 +13,7 @@ from functools import wraps
 app = Flask(__name__)
 
 engine = create_engine(
-    'postgres://rettaocxxpcxlo:227f371ec68ee2c991df2f05e01f25e31005f87f3138e28b4d43a058672e5436@ec2-34-233-0-64.compute-1.amazonaws.com:5432/danc5tsjs066va', echo=False)
+    'postgresql://rettaocxxpcxlo:227f371ec68ee2c991df2f05e01f25e31005f87f3138e28b4d43a058672e5436@ec2-34-233-0-64.compute-1.amazonaws.com:5432/danc5tsjs066va', echo=False)
 
 SessionDb = sessionmaker(bind=engine)
 sessionDb = SessionDb()
