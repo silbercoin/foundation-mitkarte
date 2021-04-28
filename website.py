@@ -12,9 +12,9 @@ from functools import wraps
 
 
 app = Flask(__name__)
-'''postgres://rettaocxxpcxlo:227f371ec68ee2c991df2f05e01f25e31005f87f3138e28b4d43a058672e5436@ec2-34-233-0-64.compute-1.amazonaws.com:5432/danc5tsjs066va'''
 
-engine = create_engine('postgresql://postgres:@localhost/mitkarte', echo=False)
+engine = create_engine(
+    'postgres://sgeteatdxmqnob:a6f4f65b648af3a5a0d557fef168932e0642b5d804fd34cf58ebd342e3b467e8@ec2-34-247-118-233.eu-west-1.compute.amazonaws.com:5432/danjl63thv63af')
 
 SessionDb = sessionmaker(bind=engine)
 sessionDb = SessionDb()
