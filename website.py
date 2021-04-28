@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, flash, redirect, url_for, session, logging
 import psycopg2
+import os
 
 from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.orm import sessionmaker
@@ -228,19 +229,17 @@ def edit_store(id):
 @app.route('/delete_store/<string:id>', methods=['POST'])
 @is_logged_in
 def delete_store(id):
-    '''cur = mysql.connection.cursor()
 
-    cur.execute("DELETE FROM stores WHERE id = %s", [id])
+    post = sessionDb.query(Store).filter(Store.id == id).first()
+    session.delete(post)
+    seesion.commit()
 
-    mysql.connection.commit()
-
-    cur.close()
-
-    flash('Store Deleted', 'success')'''
+    flash('Store Deleted', 'success')
 
     return redirect(url_for('dashboard'))
 
 
 if __name__ == "__main__":
     app.secret_key = 'secret123'
-    app.run(host="localhost", port=8080, debug=True)
+    port = os.environ.get("PORT", 5000)
+    app.run(host="0.0.0.0", port=port, debug=False)
