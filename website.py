@@ -232,7 +232,7 @@ def delete_store(id):
 
     post = sessionDb.query(Store).filter(Store.id == id).first()
     session.delete(post)
-    seesion.commit()
+    session.commit()
 
     flash('Store Deleted', 'success')
 
