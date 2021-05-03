@@ -2,9 +2,68 @@
 
 {% block body %}
     <h1>Stores</h1>
-    <ul class="list-group">
-      {% for store in stores %}
-        <li class="list-group-item"><a href="store/{{store.id}}">{{store.name}}</a></li>
-      {% endfor%}
-    </ul>
+    <div class= 'row'>
+      <div class="col-md btn-group">
+        <button type="button" class="btn btn-lg btn-warning dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+          Backery
+        </button>
+        <div class="dropdown-menu">
+          {% for store in backery %}
+            <a class="dropdown-item" href="store/{{store.storeId}}">{{store.storeName}}</a>
+          {% endfor%} 
+        </div>
+      </div>
+      <div class="col-md btn-group">
+        <button type="button" class="btn btn-lg btn-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+          Coffee shop
+        </button>
+        <div class="dropdown-menu">
+          {% for store in coffee %}
+            <a class="dropdown-item" href="store/{{store.storeId}}">{{store.storeName}}</a>
+          {% endfor%} 
+        </div>
+      </div>
+      <div class="col-md btn-group">
+        <button type="button" class="btn btn-lg btn-warning dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+          Ice Cream shop
+        </button>
+        <div class="dropdown-menu">
+          {% for store in ice %}
+            <a class="dropdown-item" href="store/{{store.storeId}}">{{store.storeName}}</a>
+          {% endfor%} 
+        </div>
+      </div>
+      <div class="col-md btn-group">
+        <button type="button" class="btn btn-lg btn-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+          Restaurant
+        </button>
+        <div class="dropdown-menu">
+          {% for store in restuarant %}
+            <a class="dropdown-item" href="store/{{store.storeId}}">{{store.storeName}}</a>
+          {% endfor%} 
+        </div>
+      </div>
+      <div class="col-md btn-group">
+        <button type="button" class="btn btn-lg btn-warning dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+          Späti
+        </button>
+        <div class="dropdown-menu">
+          {% for store in spati %}
+            <a class="dropdown-item" href="store/{{store.storeId}}">{{store.storeName}}</a>
+          {% endfor%} 
+        </div>
+      </div>
+      <div class="col-md btn-group">
+        <button type="button" class="btn btn-lg btn-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+          Bar
+        </button>
+        <div class="dropdown-menu">
+          {% for store in bar %}
+            <a class="dropdown-item" href="store/{{store.storeId}}">{{store.storeName}}</a>
+          {% endfor%} 
+        </div>
+      </div>
+    
+    </div>  
+    
 {% endblock %}  

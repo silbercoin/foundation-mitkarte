@@ -1,20 +1,20 @@
 from flask import Flask, render_template, request, flash, redirect, url_for, session, logging
 import psycopg2
 import os
+import folium
 
-from sqlalchemy import create_engine, Column, Integer, String
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine, Table, Column, Integer, String, ForeignKey, func, DateTime, update
+from sqlalchemy.orm import sessionmaker, relationship, backref
 from sqlalchemy.ext.declarative import declarative_base
 
-from wtforms import Form, StringField, TextAreaField, PasswordField, validators
+from wtforms import Form, StringField, IntegerField, PasswordField, validators, SelectField
 from passlib.hash import sha256_crypt
 from functools import wraps
 
 
 app = Flask(__name__)
 
-engine = create_engine(
-    'postgresql://sgeteatdxmqnob:a6f4f65b648af3a5a0d557fef168932e0642b5d804fd34cf58ebd342e3b467e8@ec2-34-247-118-233.eu-west-1.compute.amazonaws.com:5432/danjl63thv63af')
+engine = create_engine('postgresql://postgres:@localhost:5432/mitkarte')
 
 SessionDb = sessionmaker(bind=engine)
 sessionDb = SessionDb()
@@ -25,22 +25,31 @@ Base = declarative_base()
 class User(Base):
     __tablename__ = 'user'
 
-    id = Column(Integer, primary_key=True)
-    email = Column(String(50), unique=True)
-    password = Column(String(100))
+    userId = Column(Integer, primary_key=True)
+    userEmail = Column(String(50), unique=True)
+    userPassword = Column(String(100))
+
+    posts = relationship('Store', backref='poster', lazy='dynamic')
 
 
 class Store(Base):
     __tablename__ = 'store'
 
-    id = Column(Integer, primary_key=True)
-    name = Column(String(50))
-    address = Column(String(300))
-    category = Column(String(50))
-    # user_id = db.column(db.Integer, db.ForeignKey('user.id'))
+    storeId = Column(Integer, primary_key=True)
+    storeName = Column(String(50), nullable=False)
+    storeAddress = Column(String(100), unique=True, nullable=False)
+    storeZipcode = Column(Integer)
+    storeCity = Column(String(10), default='Berlin')
+    storeLat = Column(String(20))
+    storeLon = Column(String(20))
+    storeCategory = Column(String(50), nullable=False)
+    posttime = Column(DateTime(timezone=True), server_default=func.now())
+    posterId = Column(Integer, ForeignKey('user.userId'))
+    note = Column(String(255))
 
 
 Base.metadata.create_all(engine)
+
 
 # configure Flask using environment variables
 app.config.from_pyfile("config.py")
@@ -53,25 +62,37 @@ def index():
 
 @app.route("/about")
 def about():
-    return render_template("about.html")
+    start_coords = (52.520008, 13.404954)
+    folium_map = folium.Map(location=start_coords, zoom_start=12, tiles='https://api.mapbox.com/styles/v1/wanjeng/cko06mv2x5bib17oatlubjawm/tiles/256/{z}/{x}/{y}@2x?access_token=pk.eyJ1Ijoid2FuamVuZyIsImEiOiJja28wNnI2Y3gwY3AwMnhvYmFoaWtsMTJxIn0.R675jWsAAAi7rTRiZ7FQig',
+                            attr='Mapbox')
+    return folium_map._repr_html_()
+    # return render_template("about.html")
 
 
 @app.route("/stores")
 def stores():
 
-    stores = sessionDb.query(Store).all()
+    bar = sessionDb.query(Store).filter(
+        Store.storeCategory == 'Bar').all()
+    backery = sessionDb.query(Store).filter(
+        Store.storeCategory == 'Backery').all()
+    coffee = sessionDb.query(Store).filter(
+        Store.storeCategory == 'Coffee Shop').all()
+    ice = sessionDb.query(Store).filter(
+        Store.storeCategory == 'Icecream shop').all()
+    restuarant = sessionDb.query(Store).filter(
+        Store.storeCategory == 'Restuarant').all()
+    spati = sessionDb.query(Store).filter(
+        Store.storeCategory == 'Späti').all()
 
-    if stores:
-        return render_template('stores.html', stores=stores)
-    else:
-        msg = 'No Stores Found'
-        return render_template('stores.html', msg=msg)
+    return render_template('stores.html', bar=bar, backery=backery, coffee=coffee, ice=ice, restuarant=restuarant, spati=spati)
 
 
 @app.route("/store/<string:id>/")
 def store(id):
 
-    store = sessionDb.query(Store).filter(Store.id == id).first()
+    store = sessionDb.query(Store).filter(
+        Store.storeId == id).first()
 
     return render_template("store.html", store=store)
 
@@ -93,8 +114,8 @@ def register():
         email = form.email.data
         password = sha256_crypt.encrypt(str(form.password.data))
 
-        if sessionDb.query(User).filter(User.email == email).count() == 0:
-            data = User(email=email, password=password)
+        if sessionDb.query(User).filter(User.userEmail == email).count() == 0:
+            data = User(userEmail=email, userPassword=password)
             sessionDb.add(data)
             sessionDb.commit()
             flash('You are now registered and can log in now', 'success')
@@ -113,11 +134,11 @@ def login():
         email = request.form['email']
         password_candidate = request.form['password']
 
-        user = sessionDb.query(User).filter(User.email == email).first()
+        user = sessionDb.query(User).filter(User.userEmail == email).first()
 
         if user:
 
-            password = user.password
+            password = user.userPassword
 
             if sha256_crypt.verify(password_candidate, password):
                 # passed
@@ -129,7 +150,7 @@ def login():
 
             else:
                 error = 'Invalid login'
-            return render_template('login.html', error=error)
+                return render_template('login.html', error=error)
 
     return render_template('login.html')
 
@@ -156,7 +177,7 @@ def logout():
 @app.route('/dashboard')
 @is_logged_in
 def dashboard():
-    store = sessionDb.query(Store)
+    store = sessionDb.query(Store).order_by(Store.storeId.desc())
 
     if store:
         return render_template('dashboard.html', stores=store)
@@ -164,75 +185,96 @@ def dashboard():
         msg = 'No Stores Found'
         return render_template('dashboard.html', msg=msg)
 
-    cur.close()
-
 
 class StoreForm(Form):
-    name = StringField(
-        'Name', [validators.Length(min=1, max=200)])
-    address = TextAreaField(
-        'Address', [validators.Length(min=10)])
-    category = StringField(
-        'Category', [validators.Length(min=1, max=30)])
+    storeName = StringField(
+        'Store Name', [validators.InputRequired()])
+    storeAddress = StringField(
+        'Address', [validators.InputRequired()])
+    Zipcode = IntegerField('Zip Code', [validators.NumberRange(
+        min=10115, max=14169, message='Berlin zip code is between 10115 to 14169')])
+    City = StringField('City', default='Berlin')
+
+    storeCategory = SelectField('Category', [validators.InputRequired()], choices=[('store', 'store'), ('Backery', 'Backery'), ('Coffee Shop', 'Coffee Shop'), (
+        'Icecream shop', 'Icecream shop'), ('Restuarant', 'Restuarant'), ('Florist', 'Florist'), ('Pharmacy', 'Pharmacy'), ('Bar', 'Bar'), ('Hair shop', 'Hair shop'), ('Public Bathroom', 'Public Bathroom'), ('Späti', 'Späti')])
+    note = StringField('Note')
 
 
-@app.route('/add_store', methods=['GET', 'POST'])
-@is_logged_in
+@ app.route('/add_store', methods=['GET', 'POST'])
+@ is_logged_in
 def add_store():
     form = StoreForm(request.form)
     if request.method == 'POST' and form.validate():
-        name = form.name.data
-        address = form.address.data
-        category = form.category.data
+        name = form.storeName.data
+        address = form.storeAddress.data
+        zipcode = form.Zipcode.data
+        city = form.City.data
+        category = form.storeCategory.data
+        note = form.note.data
 
-        data = Store(name=name, address=address, category=category)
-        sessionDb.add(data)
-        sessionDb.commit()
+        if sessionDb.query(Store).filter(Store.storeAddress == address).count() == 0:
 
-        flash('Store added', 'success')
+            user = sessionDb.query(User).filter(
+                User.userEmail == session['email']).first()
 
-        return redirect(url_for('dashboard'))
+            data = Store(storeName=name, storeAddress=address, storeZipcode=zipcode,
+                         storeCity=city, storeCategory=category, note=note, poster=user)
+            sessionDb.add(data)
+            sessionDb.commit()
+
+            flash('Store added', 'success')
+            return redirect(url_for('dashboard'))
+
+        else:
+
+            sessionDb.rollback()
+
+            flash('store address is already in the database', 'warning')
+
+            return redirect(url_for('dashboard'))
 
     return render_template('add_store.html', form=form)
 
 
-@app.route('/edit_store/<string:id>', methods=['GET', 'POST'])
-@is_logged_in
+@ app.route('/edit_store/<string:id>', methods=['GET', 'POST'])
+@ is_logged_in
 def edit_store(id):
 
-    post = sessionDb.query(Store).filter(Store.id == id).first()
+    edit = sessionDb.query(Store).filter(Store.storeId == id).first()
 
     form = StoreForm(request.form)
 
-    form.name.data = post.name
-    form.address.data = post.address
-    form.category.data = post.category
+    form.storeCategory.data = edit.storeCategory
 
     if request.method == 'POST' and form.validate():
-        name = request.form['name']
-        address = request.form['address']
-        category = request.form['category']
 
-        post.name = name
-        post.address = address
-        post.category = category
+        edit.storeName = request.form['storeName']
+        edit.storeAddress = request.form['storeAddress']
+        edit.storeZipcode = request.form['Zipcode']
+        edit.storeCategory = request.form['storeCategory']
+        edit.note = request.form['note']
 
-        sessionDb.commit()
+        try:
+            sessionDb.commit()
+            flash('Store edited', 'success')
 
-        flash('Store Updated', 'success')
+            return redirect(url_for('dashboard'))
 
-        return redirect(url_for('dashboard'))
+        except:
+            sessionDb.rollback()
+            flash('cannot edit the store', 'warning')
+            return redirect(url_for('dashboard'))
 
-    return render_template('edit_store.html', form=form)
+    return render_template('edit_store.html', form=form, edit=edit)
 
 
-@app.route('/delete_store/<string:id>', methods=['POST'])
-@is_logged_in
+@ app.route('/delete_store/<string:id>', methods=['POST'])
+@ is_logged_in
 def delete_store(id):
 
-    post = sessionDb.query(Store).filter(Store.id == id).first()
-    session.delete(post)
-    session.commit()
+    post = sessionDb.query(Store).filter(Store.storeId == id).first()
+    sessionDb.delete(post)
+    sessionDb.commit()
 
     flash('Store Deleted', 'success')
 
@@ -242,4 +284,4 @@ def delete_store(id):
 if __name__ == "__main__":
     app.secret_key = 'secret123'
     port = os.environ.get("PORT", 5000)
-    app.run(host="0.0.0.0", port=port, debug=False)
+    app.run(host="0.0.0.0", port=port, debug=True)
