@@ -14,8 +14,9 @@ from functools import wraps
 
 app = Flask(__name__)
 
-engine = create_engine('postgresql://postgres:@localhost:5432/mitkarte')
-
+#engine = create_engine('postgresql://postgres:@localhost:5432/mitkarte')
+engine = create_engine(
+    'postgresql://cefumdfpapsvxt:cf36628ef9239a8181d5ba560e45916959526110bbac6d07ef7f1e18c36ab4db@ec2-54-154-101-45.eu-west-1.compute.amazonaws.com:5432/d69vdsvm2be79r')
 SessionDb = sessionmaker(bind=engine)
 sessionDb = SessionDb()
 
@@ -284,4 +285,4 @@ def delete_store(id):
 if __name__ == "__main__":
     app.secret_key = 'secret123'
     port = os.environ.get("PORT", 5000)
-    app.run(host="0.0.0.0", port=port, debug=True)
+    app.run(host="0.0.0.0", port=port, debug=False)
