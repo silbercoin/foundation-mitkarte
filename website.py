@@ -18,9 +18,9 @@ from functools import wraps
 
 app = Flask(__name__)
 
-app.config.from_object('config.DevConfig')
+app.config.from_object('config.ProdConfig')
 
-engine = create_engine(app.config["DATABASE_URI"])
+engine = create_engine(app.config["DATABASE_URL"])
 SessionDb = sessionmaker(bind=engine)
 sessionDb = SessionDb()
 Base = declarative_base()
