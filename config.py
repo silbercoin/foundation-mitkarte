@@ -18,7 +18,7 @@ class ProdConfig(Config):
     DEBUG = False
     TESTING = False
     # heroku
-    DATABASE_URL = environ.get('DATABASE_URL')
+    DATABASE_URI = environ.get('DATABASE_URI')
 
 
 class DevConfig(Config):

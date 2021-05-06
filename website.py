@@ -20,7 +20,7 @@ app = Flask(__name__)
 
 app.config.from_object('config.ProdConfig')
 
-engine = create_engine(app.config["DATABASE_URL"])
+engine = create_engine(app.config["DATABASE_URI"])
 SessionDb = sessionmaker(bind=engine)
 sessionDb = SessionDb()
 Base = declarative_base()
