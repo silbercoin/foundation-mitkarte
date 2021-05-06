@@ -20,8 +20,7 @@ app = Flask(__name__)
 
 app.config.from_object('config.ProdConfig')
 
-engine = create_engine(
-    'postgresql://cefumdfpapsvxt:cf36628ef9239a8181d5ba560e45916959526110bbac6d07ef7f1e18c36ab4db@ec2-54-154-101-45.eu-west-1.compute.amazonaws.com:5432/d69vdsvm2be79r')
+engine = create_engine(app.config["DATABASE_URL"])
 SessionDb = sessionmaker(bind=engine)
 sessionDb = SessionDb()
 Base = declarative_base()
