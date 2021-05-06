@@ -2,6 +2,10 @@ from flask import Flask, render_template, request, flash, redirect, url_for, ses
 import psycopg2
 import os
 import folium
+import geocoder
+from os import environ
+
+from flask_login import current_user
 
 from sqlalchemy import create_engine, Table, Column, Integer, String, ForeignKey, func, DateTime, update
 from sqlalchemy.orm import sessionmaker, relationship, backref
@@ -14,12 +18,11 @@ from functools import wraps
 
 app = Flask(__name__)
 
-#engine = create_engine('postgresql://postgres:@localhost:5432/mitkarte')
-engine = create_engine(
-    'postgresql://cefumdfpapsvxt:cf36628ef9239a8181d5ba560e45916959526110bbac6d07ef7f1e18c36ab4db@ec2-54-154-101-45.eu-west-1.compute.amazonaws.com:5432/d69vdsvm2be79r')
+app.config.from_object('config.DevConfig')
+
+engine = create_engine(app.config["DATABASE_URI"])
 SessionDb = sessionmaker(bind=engine)
 sessionDb = SessionDb()
-
 Base = declarative_base()
 
 
@@ -63,11 +66,15 @@ def index():
 
 @app.route("/about")
 def about():
-    start_coords = (52.520008, 13.404954)
-    folium_map = folium.Map(location=start_coords, zoom_start=12, tiles='https://api.mapbox.com/styles/v1/wanjeng/cko06mv2x5bib17oatlubjawm/tiles/256/{z}/{x}/{y}@2x?access_token=pk.eyJ1Ijoid2FuamVuZyIsImEiOiJja28wNnI2Y3gwY3AwMnhvYmFoaWtsMTJxIn0.R675jWsAAAi7rTRiZ7FQig',
-                            attr='Mapbox')
-    return folium_map._repr_html_()
-    # return render_template("about.html")
+    coord = sessionDb.query(Store).all()
+    map = folium.Map(location=[52.520008, 13.404954],
+                     zoom_start=12, height='100%', width='100%', tiles=app.config["MAPBOX_API"], attr='mapbox')
+
+    for store in coord:
+        folium.Marker([store.storeLat, store.storeLon],
+                      popup=store.storeName, tooltip=store.storeCategory, icon=folium.Icon(color='red', icon='credit-card')).add_to(map)
+
+    return render_template("about.html", map=map._repr_html_())
 
 
 @app.route("/stores")
@@ -178,7 +185,10 @@ def logout():
 @app.route('/dashboard')
 @is_logged_in
 def dashboard():
-    store = sessionDb.query(Store).order_by(Store.storeId.desc())
+    user = sessionDb.query(User).filter_by(
+        userEmail=session['email']).first()
+
+    store = sessionDb.query(Store).filter_by(posterId=user.userId)
 
     if store:
         return render_template('dashboard.html', stores=store)
@@ -196,7 +206,7 @@ class StoreForm(Form):
         min=10115, max=14169, message='Berlin zip code is between 10115 to 14169')])
     City = StringField('City', default='Berlin')
 
-    storeCategory = SelectField('Category', [validators.InputRequired()], choices=[('store', 'store'), ('Backery', 'Backery'), ('Coffee Shop', 'Coffee Shop'), (
+    storeCategory = SelectField('Category', [validators.InputRequired()], choices=[('Store', 'Store'), ('Backery', 'Backery'), ('Coffee Shop', 'Coffee Shop'), (
         'Icecream shop', 'Icecream shop'), ('Restuarant', 'Restuarant'), ('Florist', 'Florist'), ('Pharmacy', 'Pharmacy'), ('Bar', 'Bar'), ('Hair shop', 'Hair shop'), ('Public Bathroom', 'Public Bathroom'), ('Späti', 'Späti')])
     note = StringField('Note')
 
@@ -218,8 +228,11 @@ def add_store():
             user = sessionDb.query(User).filter(
                 User.userEmail == session['email']).first()
 
+            g = geocoder.mapbox(f'{address},{zipcode}{city}',
+                                key=app.config["MAPBOX_KEY"])
+
             data = Store(storeName=name, storeAddress=address, storeZipcode=zipcode,
-                         storeCity=city, storeCategory=category, note=note, poster=user)
+                         storeCity=city, storeCategory=category, storeLat=g.lat, storeLon=g.lng, note=note, poster=user)
             sessionDb.add(data)
             sessionDb.commit()
 
@@ -283,6 +296,6 @@ def delete_store(id):
 
 
 if __name__ == "__main__":
-    app.secret_key = 'secret123'
+    app.secret_key = app.config["SECRET_KEY"]
     port = os.environ.get("PORT", 5000)
-    app.run(host="0.0.0.0", port=port, debug=False)
+    app.run(host="0.0.0.0", port=port)
