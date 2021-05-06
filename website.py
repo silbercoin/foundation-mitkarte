@@ -228,7 +228,7 @@ def add_store():
             user = sessionDb.query(User).filter(
                 User.userEmail == session['email']).first()
 
-            g = geocoder.mapbox(f'{address},{zipcode}{city}',
+            g = geocoder.mapbox(f'{address},{zipcode}{city},Germany',
                                 key=app.config["MAPBOX_KEY"])
 
             data = Store(storeName=name, storeAddress=address, storeZipcode=zipcode,
